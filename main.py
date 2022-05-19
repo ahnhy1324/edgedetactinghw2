@@ -70,21 +70,8 @@ def masking(data, mask):
     return out_data
 
 
-def padding(data):
-    out_data = np.zeros((image_height+2, image_width+2))
-    for i in range(image_height):
-        for e in range(image_width):
-            out_data[i+1][e+1] = data[i][e]
-    out_data[0][0]=data[0][0]
-    out_data[0][len(out_data)-1] = data[0][len(data)-1]
-    out_data[len(out_data)-1][0]=data[len(data)-1][0]
-    out_data[len(out_data)-1][len(out_data)-1]=data[len(data)-1][len(data)-1]
-    for i in range(image_width):
-        out_data[0][i+1] = data[0][i]
-        out_data[len(out_data)-1][i+1] = data[len(data)-1][i]
-        out_data[i + 1][0] = data[i][0]
-        out_data[i + 1][len(out_data) - 1] = data[i][len(data) - 1]
-
+def padding(data,mask):
+    out_data = np.pad(data, pad_width = int(len(mask)/2), mode='edge')
     return out_data
 
 
@@ -92,7 +79,7 @@ def threshold(data):
     out_data = np.zeros((image_height, image_width), dtype='u1')
     for i in range(len(data)):
         for e in range(len(data)):
-            if 15 < data[i][e]:
+            if 0 < data[i][e]:
                 out_data[i][e] = 255
             else:
                 out_data[i][e] = 0
@@ -102,8 +89,8 @@ def threshold(data):
 bmp_header, bmp_cmp, bmp_data = image_read(file_name) #파일 입력
 
 
-bmp_padded = padding(bmp_data)
-masked_data = (masking(bmp_padded, stochastic_mask) + masking(bmp_padded, stochastic_mask.T)) / 3
+bmp_padded = padding(bmp_data, stochastic_mask)
+masked_data = (masking(bmp_padded, stochastic_mask) + masking(bmp_padded, stochastic_mask.T))
 bmp_data = threshold(masked_data)
 
 
