@@ -2,6 +2,7 @@
 #                                                   2017253019 안희영                                                   #
 ########################################################################################################################
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 header_size = 54
 cmp_size = 1024
@@ -10,7 +11,16 @@ image_width = 512
 end_in_min = 42
 end_in_max = 210
 file_name = "lena_bmp_512x512_new.bmp"
-test_mask = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
+stochastic_mask = np.array([[0.267, 0.364, 0, -0.364, -0.267],
+                            [0.373, 0.562, 0, -0.562, -0.373],
+                            [-0.463, 1.0, 0, -1.0, -0.463],
+                            [0.267, 0.364, 0, -0.364, -0.267],
+                            [0.373, 0.562, 0, -0.562, -0.373]])
+robert_mask = np.array([[1, 0],
+                        [0, -1]])
+prewit_mask = np.array([[-1, 0, 1],
+                        [-1, 0, 1],
+                        [-1, 0, 1]])
 
 
 def image_read(file):
@@ -56,37 +66,46 @@ def masking(data, mask):
     out_data = np.zeros((image_height, image_width))
     for i in range(image_width):
         for e in range(image_height):
-            out_data[i][e] = np.sum(data[i:i+3, e:e+3]*mask)
+            out_data[i][e] = int(np.sum(data[i:i+len(mask), e:e+len(mask)]*mask))
     return out_data
 
 
 def padding(data):
     out_data = np.zeros((image_height+2, image_width+2))
-    for i in range(len(out_data)):
-        for e in range(len(out_data)):
-            if (i == 0 or i == len(out_data)-1) and (e == 0 or e == len(out_data)-1):
-                pass
-            elif i == 0:
-
-            elif i == len(out_data)-1):
-            elif e == 0:
-            elif e == len(out_data)-1:
-            else:
-                out_data[i][e] = data[i-1][e-1]
-
-
+    for i in range(image_height):
+        for e in range(image_width):
+            out_data[i+1][e+1] = data[i][e]
     out_data[0][0]=data[0][0]
-    out_data[0][len(out_data)-1]
+    out_data[0][len(out_data)-1] = data[0][len(data)-1]
+    out_data[len(out_data)-1][0]=data[len(data)-1][0]
+    out_data[len(out_data)-1][len(out_data)-1]=data[len(data)-1][len(data)-1]
+    for i in range(image_width):
+        out_data[0][i+1] = data[0][i]
+        out_data[len(out_data)-1][i+1] = data[len(data)-1][i]
+        out_data[i + 1][0] = data[i][0]
+        out_data[i + 1][len(out_data) - 1] = data[i][len(data) - 1]
+
     return out_data
 
 
-bmp_header, bmp_cmp, bmp_data = image_read(file_name)#파일 입력
+def threshold(data):
+    out_data = np.zeros((image_height, image_width), dtype='u1')
+    for i in range(len(data)):
+        for e in range(len(data)):
+            if 15 < data[i][e]:
+                out_data[i][e] = 255
+            else:
+                out_data[i][e] = 0
+    return out_data
+
+
+bmp_header, bmp_cmp, bmp_data = image_read(file_name) #파일 입력
 
 
 bmp_padded = padding(bmp_data)
-masked_data = masking(bmp_padded, test_mask)
+masked_data = (masking(bmp_padded, stochastic_mask) + masking(bmp_padded, stochastic_mask.T)) / 3
+bmp_data = threshold(masked_data)
 
-# 파일로 출력
-bmp_data = clamping(masked_data)
-image_write('test.bmo', bmp_header, bmp_cmp, masked_data)
+
+image_write('test.bmp', bmp_header, bmp_cmp, bmp_data)
 exit()
